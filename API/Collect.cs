@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 
@@ -7,14 +8,12 @@ namespace Open_Rails_Telemetry.API
     [ApiController]
     public class Collect : ControllerBase
     {
-        readonly IConfiguration Configuration;
         readonly string DataPathCollectSystem;
 
         public Collect(IConfiguration configuration)
         {
-            Configuration = configuration;
-            DataPathCollectSystem = Path.Combine(Configuration["DataPath"], "collect", "system");
-            if (!Directory.Exists(DataPathCollectSystem)) Directory.CreateDirectory(DataPathCollectSystem);
+            DataPathCollectSystem = Path.Combine(configuration["DataPath"], "collect", "system");
+            Directory.CreateDirectory(DataPathCollectSystem);
         }
 
         [HttpPost("System")]
@@ -24,7 +23,9 @@ namespace Open_Rails_Telemetry.API
             // File's name has the date for analysis, and a random key to prevent collisions
             var date = DateTime.UtcNow.Date;
             var randomKey = Guid.NewGuid().ToString();
-            var file = new FileInfo(Path.Combine(DataPathCollectSystem, $"{date:yyyy-MM-dd}_{randomKey}.json"));
+            var directory = Path.Combine(DataPathCollectSystem, ISOWeek.GetYear(date).ToString(), "W" + ISOWeek.GetWeekOfYear(date).ToString("00"));
+            Directory.CreateDirectory(directory);
+            var file = new FileInfo(Path.Combine(directory, $"{date:yyyy-MM-dd}_{randomKey}.json"));
             // Write the JSON into the file
             await using (var stream = file.Create())
             {
